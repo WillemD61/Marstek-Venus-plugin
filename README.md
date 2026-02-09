@@ -77,7 +77,8 @@ assuming you have sensors for that in your system.</br></br>
 Note the UDP communication is not very reliable. A change of operating mode might not always be done. In that case the switch will not change to the selected mode either and you
 have to try again. Also data collection sometimes runs into timeouts. It will retry automatically to collect data.
 
-Two test programs are available to check all API commands in your environment. I am curious to see what response is given in multi-system and multi-battery environments.
+Two test programs are available to check all API commands in your environment. For the test program the config.json file has to be adapdted with the correct IP number and MAC address.
+I am curious to see what response is given in multi-system and multi-battery environments.
 
 Any feedback appreciated.
 
