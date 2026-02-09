@@ -1,10 +1,10 @@
 # Marstek-Venus-plugin
 Domoticz plugin for Marstek Venus battery
 
-Marstek Venus A plugin for Domoticz, developed using Basic Python Plugin Framework as provided by GizMoCuz for Domoticz</br>
-author WillemD61</br>
-first release version 1.0.0</br>
-This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge).
+Marstek Venus A plugin for Domoticz, developed using Basic Python Plugin Framework as provided by GizMoCuz for Domoticz</br></br>
+* author WillemD61</br>
+* first release version 1.0.0</br></br>
+Credit: This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge).
 The library was extended to cover all elements from the Open API specification and was made more responsive and reliable.</br></br>
 
 Please make sure the Open API feature has been enabled via the Marstek mobile app.</br></br>
