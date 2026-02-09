@@ -3,7 +3,8 @@ Domoticz plugin for Marstek Venus battery
 
 Marstek Venus A plugin for Domoticz, developed using Basic Python Plugin Framework as provided by GizMoCuz for Domoticz</br></br>
 * author WillemD61</br>
-* first release version 1.0.0</br></br>
+* first release version 1.0.0</br>
+
 Credit: This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge).
 The library was extended to cover all elements from the Open API specification and was made more responsive and reliable.</br></br>
 
@@ -11,7 +12,7 @@ Please make sure the Open API feature has been enabled via the Marstek mobile ap
 
 Reference is made to the Marstek Open API specification version rev. 1.0
 
-Modifications done to the venus_api.py library of Ivan Kablar:
+# Modifications done to the venus_api.py library of Ivan Kablar:
 1) Added the Masrtek.GetDevice function for device discovery (par 2.2.2 and 3.1.1)
 2) Added both the Wifi and Bluetooth Getstatus functions (par 3.2.1. and 3.3.1)
 3) Added the PV GetStatus function (par 3.5.1)
@@ -21,14 +22,14 @@ Also the test_api.py program was extended to include the above in the tests.
 
 So the venus_api_v2 library now covers the full specification of Marstek Open API and can be used in any python program.
 
-Even though the functions are now present in the API library, the current version of this plugin does NOT (!!!) do the following:
+# Even though the functions are now present in the API library, the current version of this plugin does NOT (!!!) do the following:
 1) implement the marstek.GetDevice UDP discovery to find Marstek devices on the network (par. 2.2.2 and 3.1.1). Instead, the Marstek device
     to be used has to be specified manually in the configuration parameters of this plugin.
 2) implement the Wifi.GetStatus (par 3.2.1) to configure or obtain Wifi info
 3) implement the BLE.GetStatus (par 3.3.1) to obtain Bluetooth info
 4) configuration of up to 10 periods for manual operating mode. For now it will handle one single period.
 
-It does implement the following:
+# It does implement the following:
 1) Get Battery, PV, ES (Energy System) and EM (Energy Meter) status info (par. 3.4, 3.5, 3.6.1 and 3.7.1)
 2) Get current Eenergy System operating mode (par 3.6.3)
 3) Change Energy System operating mode (auto, AI, manual, passive as shown in par 3.6.2)
@@ -37,9 +38,9 @@ It does implement the following:
 5) Send an alert when an error is received (if configured)
 6) Show data received in the domoticz log for debugging/monitoring (if configured)
 
-This plugin was not tested in a multi-system environment. Only one Marstek Venus A was available for testing.
+# This plugin was not tested in a multi-system environment. Only one Marstek Venus A was available for testing.
 
-Observations on the Marstek Open Api specification:
+# Observations on the Marstek Open Api specification:
 1) The specification includes reference to ID and SRC, maybe for multi-system environments, but that is not clear.
 2) par 3.2.1 : the wifi response also includes a wifi_mac field
 3) par 3.5.1 : the pv response also includes a pv_state field and reports all fields for each  of the PV connections (4x)
