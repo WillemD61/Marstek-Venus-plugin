@@ -8,7 +8,7 @@ Marstek Venus A plugin for Domoticz, developed using Basic Python Plugin Framewo
 Credit: This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge).
 The library was extended to cover all elements from the Open API specification and was made more responsive and reliable.</br></br>
 
-Please make sure the Open API feature has been enabled via the Marstek mobile app.</br></br>
+# Please make sure the Open API feature has been enabled via the Marstek mobile app.</br></br>
 
 Reference is made to the Marstek Open API specification version rev. 1.0
 
@@ -35,7 +35,7 @@ So the venus_api_v2 library now covers the full specification of Marstek Open AP
 3) Change Energy System operating mode (auto, AI, manual, passive as shown in par 3.6.2)
    note the config of periods for manual mode needs to be further developed in future version of this plugin.
 4) Create all required Domoticz devices and load received data onto the devices.
-5) Send an alert when an error is received (if configured)
+5) For now switched off but can be easily switched on by uncommenting the code : Send an alert when an error is received (if configured)
 6) Show data received in the domoticz log for debugging/monitoring (if configured)
 
 # This plugin was not tested in a multi-system environment. Only one Marstek Venus A was available for testing.
@@ -51,3 +51,35 @@ So the venus_api_v2 library now covers the full specification of Marstek Open AP
 
 Some duplicate values are present when looking at all data responses (soc 3x, ongrid and offgrid power 2x, EM data depending on mode 2x)
 For now these are included but might be removed later.
+
+# Installation instructions
+
+1) Login to the Domoticz server and obtain a command line.
+2) Change to the plugin directory with "cd domoticz/plugins".
+3) Create a new plugin directory with "mkdir Marstek-Venus-plugin".
+4) Change to the new directory with "cd Marstek-Venus-plugin".
+5) Copy the file plugin.py from this Github repository into the Marstek-Venus-plugin directory.
+6) Restart Domoticz with "sudo service domoticz restart".
+7) Once restarted, select the Marstek Open API plugin via the Domoticz Setup-Hardware menu, give it a name, fill in the required fields and confirm.
+8) It will now create the new devices and after the first polling interval, it will start collecting the data.
+9) Check the Domoticz log file for any issues and progress. 
+
+Step 3 to 5 above can be replaced with "git clone https://github.com/WillemD61/Marstek-Venus-plugin" if git is installed on your server.
+
+# Usage
+
+A DzVents script is available here to set initial values on the devices for manual mode and passive mode. Copy that file and run it once at a time suitable to you.
+After that you can switch Marstek operating mode by pressing the selector switch on the Domoticz switch tab.</br></br>
+
+Further DzVents or python programs can be developed to customize your battery usage, for example setting the system to passive mode when the car is charging, 
+assuming you have sensors for that in your system.</br></br>
+
+Note the UDP communication is not very reliable. A change of operating mode might not always be done. In that case the switch will not change to the selected mode either and you
+have to try again. Also data collection sometimes runs into timeouts. It will retry automatically to collect data.
+
+Two test programs are available to check all API commands in your environment. I am curious to see what response is given in multi-system and multi-battery environments.
+
+Any feedback appreciated.
+
+
+
