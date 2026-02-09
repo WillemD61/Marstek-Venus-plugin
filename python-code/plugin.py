@@ -356,7 +356,7 @@ class MarstekPlugin:
         for Dev in response:
 
             # do not process ID or the energy meter data received from getmode command in certain modes
-            if Dev!="id" and not (source=="ESM" and (Dev=="mode" or Dev=="ongrid_power" or Dev=="offgrid_power" or Dev=="bat_soc")) :
+            if Dev!="id" and not (source=="ESM" and (Dev=="ongrid_power" or Dev=="offgrid_power" or Dev=="bat_soc")) :
 
                 if source=="ESS": # handle the duplicate ESS field names, also received in other commands
                     if (Dev=="bat_soc" or Dev=="ongrid_power" or Dev=="offgrid_power"):
