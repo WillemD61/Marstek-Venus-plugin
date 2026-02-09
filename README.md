@@ -10,6 +10,8 @@ The library was extended to cover all elements from the Open API specification a
 
 # Please make sure the Open API feature has been enabled via the Marstek mobile app.</br></br>
 
+In my experience, sometimes the Open API enable setting in the Marstek App is automatically reset, resulting in timeouts in datacommunication.  If this happens you will have to enable it again.
+
 Reference is made to the Marstek Open API specification version rev. 1.0
 
 # Modifications done to the venus_api.py library of Ivan Kablar:
