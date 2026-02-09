@@ -8,11 +8,11 @@ Marstek Venus A plugin for Domoticz, developed using Basic Python Plugin Framewo
 Credit: This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge).
 The library was extended to cover all elements from the Open API specification and was made more responsive and reliable.</br></br>
 
+Reference is made to the Marstek Open API specification version rev. 1.0
+
 # Please make sure the Open API feature has been enabled via the Marstek mobile app.</br></br>
 
 In my experience, sometimes the Open API enable setting in the Marstek App is automatically reset, resulting in timeouts in datacommunication.  If this happens you will have to enable it again.
-
-Reference is made to the Marstek Open API specification version rev. 1.0
 
 # Modifications done to the venus_api.py library of Ivan Kablar:
 1) Added the Masrtek.GetDevice function for device discovery (par 2.2.2 and 3.1.1)
