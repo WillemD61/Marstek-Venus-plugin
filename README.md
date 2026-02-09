@@ -35,10 +35,11 @@ So the venus_api_v2 library now covers the full specification of Marstek Open AP
 1) Get Battery, PV, ES (Energy System) and EM (Energy Meter) status info (par. 3.4, 3.5, 3.6.1 and 3.7.1)
 2) Get current Eenergy System operating mode (par 3.6.3)
 3) Change Energy System operating mode (auto, AI, manual, passive as shown in par 3.6.2)
-   note the config of periods for manual mode needs to be further developed in future version of this plugin.
-4) Create all required Domoticz devices and load received data onto the devices.
-5) For now switched off but can be easily switched on by uncommenting the code : Send an alert when an error is received (if configured)
-6) Show data received in the domoticz log for debugging/monitoring (if configured)
+   note the config of periods for manual mode needs to be further developed in future version of this plugin. For now it will
+   pick up one single period configuration from domoticz devices.
+5) Create all required Domoticz devices and load received data onto the devices.
+6) For now switched off but can be easily switched on by uncommenting the code : Send an alert when an error is received (if configured)
+7) Show data received in the domoticz log for debugging/monitoring (if configured)
 
 # This plugin was not tested in a multi-system environment. Only one Marstek Venus A was available for testing.
 
