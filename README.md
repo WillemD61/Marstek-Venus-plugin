@@ -72,7 +72,7 @@ Step 3 to 5 above can be replaced with "git clone https://github.com/WillemD61/M
 # Usage
 
 A DzVents script is available here to set initial values on the devices for manual mode and passive mode. Copy that file and run it once at a time suitable to you.
-After that you can switch Marstek operating mode by pressing the selector switch on the Domoticz switch tab.</br></br>
+After that you can switch Marstek operating mode by pressing the selector switch on the Domoticz switch tab. Switching might take a short time because it will wait until the ongoing data collection has finished.</br></br>
 
 Further DzVents or python programs can be developed to customize your battery usage, for example setting the system to passive mode when the car is charging, 
 assuming you have sensors for that in your system.</br></br>
