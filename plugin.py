@@ -38,7 +38,7 @@
 #
 # This plugin was not tested in a multi-system environment. Only one Marstek Venus A was available for testing.
 #
-# Observations on teh Marstek Open Api specification:
+# Observations on the Marstek Open Api specification:
 # 1) The specification includes reference to ID and SRC, maybe for multi-system environments, but that is not clear.
 # 2) par 3.2.1 : the wifi response also includes a wifi_mac field
 # 3) par 3.5.1 : the pv response also includes a pv_state field and reports all fields for each  of the PV connections (4x)
@@ -95,7 +95,7 @@ import json,requests   # make sure these are available in your system environmen
 from requests.exceptions import Timeout
 
 from venus_api_v2 import VenusAPIClient
-debug=False
+debug=True
 
 # A dictionary to list all parameters that can be retrieved from Marstek and to define the Domoticz devices to hold them.
 # currently only english names are provided, can be extended with other languages later
@@ -235,7 +235,6 @@ class MarstekPlugin:
                 if success:
                     if debug: Domoticz.Log("Succesfully changed to auto mode (=self consumption mode).")
                     Devices[DeviceID].Units[Unit].sValue=str(Level)
-                    Devices[DeviceID].Units[Unit].sValue=Level
                     Devices[DeviceID].Units[Unit].Update()
                 else:
                     Domoticz.Log("Change to auto mode (=self consumption mode) failed.")
@@ -244,7 +243,6 @@ class MarstekPlugin:
                 if success:
                     Domoticz.Log("Succesfully changed to AI optimisation mode.")
                     Devices[DeviceID].Units[Unit].sValue=str(Level)
-                    Devices[DeviceID].Units[Unit].sValue=Level
                     Devices[DeviceID].Units[Unit].Update()
                 else:
                     Domoticz.Log("Change to AI optimisation mode failed.")
@@ -293,7 +291,6 @@ class MarstekPlugin:
                                     if success:
                                         Domoticz.Log("Succesfully changed to manual mode."+str(mmpower))
                                         Devices[DeviceID].Units[Unit].sValue=str(Level)
-                                        Devices[DeviceID].Units[Unit].sValue=Level
                                         Devices[DeviceID].Units[Unit].Update()
                                     else:
                                         Domoticz.Log("Change to manual mode failed")
@@ -321,7 +318,6 @@ class MarstekPlugin:
                     if success:
                         Domoticz.Log("Succesfully changed to passive mode.")
                         Devices[DeviceID].Units[Unit].sValue=str(Level)
-                        Devices[DeviceID].Units[Unit].sValue=Level
                         Devices[DeviceID].Units[Unit].Update()
                     else:
                         Domoticz.Log("Change to passive mode failed")
@@ -411,6 +407,23 @@ class MarstekPlugin:
                             fieldText=str(fieldValue)
                             Devices[DeviceID].Units[Unit].sValue=fieldText
                             Devices[DeviceID].Units[Unit].Update()
+
+                        if DevName=="mode":
+                            # mode switch will follow mode status received
+                            modeSelectorUnit=DEVSLIST["select Marstek mode"][0]
+                            modeswitchDeviceID="{:04x}{:04x}".format(self.Hwid,modeSelectorUnit)
+                            fieldValue=response[Dev]
+                            if fieldValue=="Auto":
+                                Level=10
+                            elif fieldValue=="AI":
+                                Level=20
+                            elif fieldValue=="Manual":
+                                Level=30
+                            elif fieldValue=="Passive":
+                                Level=40
+                            Devices[modeswitchDeviceID].Units[modeSelectorUnit].sValue=str(Level)
+                            Devices[modeswitchDeviceID].Units[modeSelectorUnit].Update()
+
 
 
     def getVenusData(self):
