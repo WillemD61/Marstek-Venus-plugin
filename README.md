@@ -85,5 +85,10 @@ I am curious to see what response is given in multi-system and multi-battery env
 
 Any feedback appreciated.
 
+# Release Notes
+
+version 1.0.0. initial release
+version 1.0.1. correction for kW device, type 248, electric
+
 
 
