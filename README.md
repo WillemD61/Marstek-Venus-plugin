@@ -61,7 +61,7 @@ For now these are included but might be removed later.
 2) Change to the plugin directory with "cd domoticz/plugins".
 3) Create a new plugin directory with "mkdir Marstek-Venus-plugin".
 4) Change to the new directory with "cd Marstek-Venus-plugin".
-5) Copy the file plugin.py from this Github repository into the Marstek-Venus-plugin directory.
+5) Copy the file plugin.py and venus_api_v2.py from this Github repository into the Marstek-Venus-plugin directory.
 6) Restart Domoticz with "sudo service domoticz restart".
 7) Once restarted, select the Marstek Open API plugin via the Domoticz Setup-Hardware menu, give it a name, fill in the required fields and confirm.
 8) It will now create the new devices and after the first polling interval, it will start collecting the data.
