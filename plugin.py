@@ -1,7 +1,9 @@
 # Marstek Venus A plugin for Domoticz, developed using Basic Python Plugin Framework as provided by GizMoCuz for Domoticz
 #
 # author WillemD61
-# version 1.0.0
+# version 1.0.0. initial release
+# version 1.0.1
+# - correction for device type 248 processing
 #
 # This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge)
 # The library was extended to cover all elements from the specification and was made more responsive and reliable.
@@ -397,7 +399,7 @@ class MarstekPlugin:
                             fieldText=str(fieldValue)
                             Devices[DeviceID].Units[Unit].sValue=fieldText
                             Devices[DeviceID].Units[Unit].Update()
-                        if ((type==244) or (type==248)) : # switch device
+                        if (type==244) : # switch device
                             fieldValue=response[Dev]
                             if fieldValue==True:
                                 fieldValue=1
@@ -407,7 +409,13 @@ class MarstekPlugin:
                             fieldText=str(fieldValue)
                             Devices[DeviceID].Units[Unit].sValue=fieldText
                             Devices[DeviceID].Units[Unit].Update()
-
+                        if (type==248): # kW device
+                            fieldValue=response[Dev]
+                            Devices[DeviceID].Units[Unit].nValue=int(fieldValue)
+                            fieldText=str(fieldValue)
+                            Devices[DeviceID].Units[Unit].sValue=fieldText
+                            Devices[DeviceID].Units[Unit].Update()
+                       
                         if DevName=="mode":
                             # mode switch will follow mode status received
                             modeSelectorUnit=DEVSLIST["select Marstek mode"][0]
