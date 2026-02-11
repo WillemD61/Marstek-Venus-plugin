@@ -100,7 +100,7 @@ import json,requests   # make sure these are available in your system environmen
 from requests.exceptions import Timeout
 
 from venus_api_v2 import VenusAPIClient
-debug=True
+debug=False
 
 # A dictionary to list all parameters that can be retrieved from Marstek and to define the Domoticz devices to hold them.
 # currently only english names are provided, can be extended with other languages later
