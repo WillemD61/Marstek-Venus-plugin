@@ -94,4 +94,15 @@ version 1.0.2.</br>
     * kW device type 248, electric, replaced by type 243,29, electric instant+counter. Watts are supplied to this device, Domoticz will calculate kWh. New install is required to replace devices (delete old and reinstall new)</br>
     * improved error handling in validation of input parameters to mode switch</br>  
 
+# Extra features
+
+1) Setting UPS mode is possible, although not in the Open API specification
+
+# Bugs
+
+In Open API (so needs to be solved by Marstek)</br>
+1) If UPS was set and the APP is used to switch to manual mode without an active period, the Open API continues to report UPS mode.
+2) The power and countdown settings for passive mode, as per Open API specification, do not have an effect.
+3) A power setting for UPS mode is required in the request, but does not have an effect, and therefore cannot be configured.
+
 
