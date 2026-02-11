@@ -3,7 +3,7 @@ Domoticz plugin for Marstek Venus battery
 
 Marstek Venus A plugin for Domoticz, developed using Basic Python Plugin Framework as provided by GizMoCuz for Domoticz</br></br>
 * author WillemD61</br>
-* first release version 1.0.0</br>
+* current version: 1.0.2 see release notes below </br>
 
 Credit: This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge).
 The library was extended to cover all elements from the Open API specification and was made more responsive and reliable.</br></br>
@@ -89,6 +89,10 @@ Any feedback appreciated.
 
 version 1.0.0. initial release</br>
 version 1.0.1. correction for kW device, type 248, electric</br>
-
+version 1.0.2.
+    * kW device type 248, electric, replaced by type 243,29, electric instant+counter
+      Watts are supplied to this device, Domoticz will calculate kWh.
+      New install is required to replace devices (delete old and reinstall new)
+    * improved error handling in validation of input parameters to mode switch  
 
 
