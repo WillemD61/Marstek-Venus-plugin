@@ -428,7 +428,7 @@ class MarstekPlugin:
                             Devices[DeviceID].Units[Unit].Update()
                         if ((type==243) and (subtype==29)): # kwh device, instant+counter
                             fieldValue=response[Dev]
-                            if fieldValue>=0 and fieldValue<10000 : # only reasonable values will be processed
+                            if fieldValue>=-10000 and fieldValue<10000 : # only reasonable values will be processed, not 655xx
                                 Devices[DeviceID].Units[Unit].nValue=0
                                 Devices[DeviceID].Units[Unit].sValue=str(fieldValue)+";1" # supply actual watts , kwh are calculated by Domoticz.
                                 Devices[DeviceID].Units[Unit].Update()
