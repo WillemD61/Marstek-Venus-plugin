@@ -89,7 +89,7 @@ Any feedback appreciated.
 
 version 1.0.0. initial release</br>
 version 1.0.1. correction for kW device, type 248, electric</br>
-version 1.0.2.
+version 1.0.2.</br>
     * kW device type 248, electric, replaced by type 243,29, electric instant+counter</br>
       Watts are supplied to this device, Domoticz will calculate kWh.</br>
       New install is required to replace devices (delete old and reinstall new)</br>
