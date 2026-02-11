@@ -12,11 +12,11 @@ import time
 from typing import Dict, Optional
 import logging
 
-#logging.basicConfig(
-#format='%(asctime)s - %(levelname)s - %(message)s',
-#datefmt='%Y-%m-%d %H:%M:%S',
-#filename='API.log',
-#level=logging.DEBUG)
+logging.basicConfig(
+format='%(asctime)s - %(levelname)s - %(message)s',
+datefmt='%Y-%m-%d %H:%M:%S',
+filename='API.log',
+level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -328,8 +328,8 @@ class VenusAPIClient:
             "config": {
                 "mode": "Passive",
                 "passive_cfg": {
-                    "power": power,
-                    "cd_time": countdown
+                    "power": power, # does not seem to have an effect
+                    "cd_time": countdown # does not seem to have an effect
                 }
             }
         }
@@ -360,6 +360,30 @@ class VenusAPIClient:
         result = self._send_request("ES.SetMode", params)
         if result and result.get("set_result"):
             logger.info("Auto mode enabled")
+            return True
+        return False
+
+    def set_ups_mode(self, power: int) -> bool:  # not in the Open API specification but it works
+        """
+        Enable ups mode
+
+        Returns:
+            True if successful, False otherwise
+        """
+        params = {
+            "id": 0,
+            "config": {
+                "mode": "UPS",
+                "ups_cfg": {
+                    "power": power, # does not seem to have an effect
+                    "enable": 1
+                }
+            }
+        }
+
+        result = self._send_request("ES.SetMode", params)
+        if result and result.get("set_result"):
+            logger.info("UPS mode enabled")
             return True
         return False
 

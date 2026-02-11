@@ -2,11 +2,18 @@
 #
 # author WillemD61
 # version 1.0.0
+#   * initial release
 # version 1.0.1 
 #   * fixed the processing of device type 248
 # version 1.0.2 
 #   * replaced most types 248/1 with 243/29 => supply Watts and Domoticz calculates kWh (new install required)
-#   * improved error handling in validation of input parameters to mode switch
+#   * improved error handling in validation of input parameters for mode switch
+# version 1.0.3
+#   * added UPS mode, even though not in Open API specification, it works (power specification has no effect)
+#   * remove passive-mode power and countdown devices because no effect
+#   * negative power values allowed
+#   * more clear devices names
+#   * additional debug level in startup parameters
 #
 # This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge)
 # The library was extended to cover all elements from the specification and was made more responsive and reliable.
@@ -90,6 +97,12 @@
         </param>
         <param field="Mode4" label="Max output W configured" width="150px" required="true">
         </param>
+        <param field="Mode5" label="More debug info" width="150px" required="true">
+            <options>
+                <option label="Yes" value="Yes" />
+                <option label="No" value="No" default="true" />
+            </options>
+        </param>
     </params>
 </plugin>
 """
@@ -100,7 +113,7 @@ import json,requests   # make sure these are available in your system environmen
 from requests.exceptions import Timeout
 
 from venus_api_v2 import VenusAPIClient
-debug=False
+
 
 # A dictionary to list all parameters that can be retrieved from Marstek and to define the Domoticz devices to hold them.
 # currently only english names are provided, can be extended with other languages later
@@ -140,35 +153,36 @@ DEVSLIST={
 # note in case of auto or AI mode the response of Es.GetMode also includes EM.GetStatus data
 # reponse ES.GetStatus
     "es_bat_soc"      : [27, 243,  6, 0, {}, 1   ,"ESS Total SOC","ESS"],  # duplicate ? note es_ added to name to create unique key
-    "bat_cap"         : [28, 113,  0, 0, {}, 1   ,"ESS Total capacity","ESS"], # duplicate value but still unique name (other is bat_capacity)
+    "bat_cap"         : [28, 113,  0, 0, {}, 1   ,"ESS Rated capacity","ESS"], # duplicate value but still unique name (other is bat_capacity)
     "pv_power"        : [29, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS PV charging power","ESS"],
     "es_ongrid_power" : [30, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS on-grid power","ESS"], # duplicate ? note es_ added to name to create unique key
     "es_offgrid_power": [31, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS off-grid power","ESS"], # duplicate ? note es_ added to name to create unique key
 #    "bat_power"      : "ES battery power W"], # not present in ES.getStatus response, although in specification ver 1.0
-    "total_pv_energy"          : [32, 113,  0, 0, {}, 1   ,"ESS Total PV energy generated","ESS"],
-    "total_grid_output_energy" : [33, 113,  0, 0, {}, 1   ,"ESS Total grid output energy","ESS"],
-    "total_grid_input_energy"  : [34, 113,  0, 0, {}, 1   ,"ESS Total grid input energy","ESS"],
-    "total_load_energy"        : [35, 113,  0, 0, {}, 1   ,"ESS Total off-grid energy consumed","ESS"],
+    "total_pv_energy"          : [32, 113,  0, 0, {}, 1   ,"ESS PV energy generated","ESS"],
+    "total_grid_output_energy" : [33, 113,  0, 0, {}, 1   ,"ESS Battery output energy","ESS"],
+    "total_grid_input_energy"  : [34, 113,  0, 0, {}, 1   ,"ESS Battery input energy","ESS"],
+    "total_load_energy"        : [35, 113,  0, 0, {}, 1   ,"ESS Off-grid energy used","ESS"],
 # response EM.GetStatus
     "ct_state"        : [36, 244, 73, 0, {}, 1,  "P1 CT state","EMS"],
     "a_power"         : [37, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Phase A power","EMS"],
     "b_power"         : [38, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Phase B power","EMS"],
     "c_power"         : [39, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Phase C power","EMS"],
-    "total_power"     : [40, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Total power","EMS"],
-    "input_energy"    : [41, 113,  0, 0, {}, 0.1 ,"P1 Total input energy","EMS"], # in response, although not in specification ver 1.0
-    "output_energy"   : [42, 113,  0, 0, {}, 0.1 ,"P1 Total output energy","EMS"], # in response, although not in specification ver 1.0
+    "total_power"     : [40, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 A+B+C power","EMS"],
+    "input_energy"    : [41, 113,  0, 0, {}, 0.1 ,"P1 input from grid","EMS"], # in response, although not in specification ver 1.0
+    "output_energy"   : [42, 113,  0, 0, {}, 0.1 ,"P1 output to grid","EMS"], # in response, although not in specification ver 1.0
 # device for holding one single manual mode setting
     "time_period"     : [43, 243, 19, 0, {}, 1   ,"Manual Mode periodnr","MM"],
     "start_time"      : [44, 243, 19, 0, {}, 1   ,"Manual Mode starttime","MM"],
     "end_time"        : [45, 243, 19, 0, {}, 1   ,"Manual Mode endtime","MM"],
     "week_set"        : [46, 243, 19, 0, {}, 1   ,"Manual Mode weekdays","MM"],
     "mm_power"        : [47, 248,  1, 0, {}, 1   ,"Manual Mode power","MM"], # note mm_ added to create unique key
-# device for holding passive mode countdown
-    "pm_power"        : [48, 248,  1, 0, {}, 1   ,"Passive Mode power","PM"], # note pm_ added to create unique key
-    "countdown"       : [49, 243, 19, 0, {}, 1   ,"Passive Mode countdown s","PM"],
+# device for holding passive mode power and countdown
+# removed because they do not have an effect
+#    "pm_power"        : [48, 248,  1, 0, {}, 1   ,"Passive Mode power","PM"], # note pm_ added to create unique key
+#    "countdown"       : [49, 243, 19, 0, {}, 1   ,"Passive Mode countdown s","PM"],
 # device to activate mode switch
 # do not change name, used on onCommand code below
-    "select Marstek mode"     : [50, 244, 62, 18, {"LevelActions":"||||","LevelNames":"|AutoSelf|AI|Manual|Passive","LevelOffHidden":"true","SelectorStyle":"0"}, 1 ,"Select Marstek mode","SM"],
+    "select Marstek mode"     : [50, 244, 62, 18, {"LevelActions":"|||||","LevelNames":"|AutoSelf|AI|Manual|Passive|UPS","LevelOffHidden":"true","SelectorStyle":"0"}, 1 ,"Select Marstek mode","SM"],
 } # end of dictionary
 
 class MarstekPlugin:
@@ -177,6 +191,7 @@ class MarstekPlugin:
         return
 
     def onStart(self):
+        global debug
         Domoticz.Log("onStart called with parameters")
         for elem in Parameters:
             Domoticz.Log(str(elem)+" "+str(Parameters[elem]))
@@ -192,6 +207,7 @@ class MarstekPlugin:
         self.emailAlertSent=False
         self.showDataLog=(Parameters["Mode3"]=="Yes")
         self.maxOutputPower=int(Parameters["Mode4"])
+        debug=(Parameters["Mode5"]=="Yes")
         self.heartbeatCounter=0
         self.stillbusy=False
         self.Hwid=Parameters['HardwareID']
@@ -326,14 +342,17 @@ class MarstekPlugin:
                         Domoticz.Error("No valid timeperiod set for manual mode")
                 elif Level==40: # passive mode
                     # check and build parameters for passive mode
-                    pmpowerUnit=DEVSLIST["pm_power"][0]
-                    countdownUnit=DEVSLIST["countdown"][0]
-                    pmpower=Devices["{:04x}{:04x}".format(self.Hwid,pmpowerUnit)].Units[pmpowerUnit].sValue
-                    countdown=Devices["{:04x}{:04x}".format(self.Hwid,countdownUnit)].Units[countdownUnit].sValue
-                    pmpower=int(pmpower)
-                    countdown=int(countdown)
+                    #pmpowerUnit=DEVSLIST["pm_power"][0]
+                    #countdownUnit=DEVSLIST["countdown"][0]
+                    #pmpower=Devices["{:04x}{:04x}".format(self.Hwid,pmpowerUnit)].Units[pmpowerUnit].sValue
+                    #countdown=Devices["{:04x}{:04x}".format(self.Hwid,countdownUnit)].Units[countdownUnit].sValue
+                    #pmpower=int(pmpower)
+                    #countdown=int(countdown)
+                    pmpower=0
+                    countdown=0 # note both power and countdown are required but don't seem to have an effect
                     if pmpower<=1200 and pmpower>=-1*self.maxOutputPower:
                         # all validation done
+                        # note power and countdown are required but do not seem to have an effect
                         success=client.set_passive_mode(pmpower,countdown)
                         while not success and nrAttemptsDone<maxNrOfAttempts:
                             Domoticz.Error("Change to passive mode failed, retrying ...")
@@ -347,6 +366,21 @@ class MarstekPlugin:
                             Domoticz.Error("Change to passive mode failed")
                     else:
                         Domoticz.Error("No valid power setting for passive mode")
+                elif Level==50: # UPS
+                    # check and build parameters for UPS mode
+                    # note power is required but does not seem to have an effect
+                    upower=0
+                    success=client.set_ups_mode(upower)
+                    while not success and nrAttemptsDone<maxNrOfAttempts:
+                        Domoticz.Error("Change to UPS mode failed, retrying ...")
+                        success=client.set_ups_mode(upower)
+                        nrAttemptsDone+=1
+                    if success:
+                        Domoticz.Log("Succesfully changed to UPS mode.")
+                        Devices[DeviceID].Units[Unit].sValue=str(Level)
+                        Devices[DeviceID].Units[Unit].Update()
+                    else:
+                        Domoticz.Error("Change to UPS mode failed")
             else:
                 if debug: Domoticz.Log("Command "+str(Command)+" DeviceID "+DeviceID+" ExpectedID "+expectedDeviceID)
         except ValueError:
@@ -428,7 +462,7 @@ class MarstekPlugin:
                             Devices[DeviceID].Units[Unit].Update()
                         if ((type==243) and (subtype==29)): # kwh device, instant+counter
                             fieldValue=response[Dev]
-                            if fieldValue>=-10000 and fieldValue<10000 : # only reasonable values will be processed, not 655xx
+                            if fieldValue>=-10000 and fieldValue<10000 : # only "reasonable" values will be processed, not 655xx
                                 Devices[DeviceID].Units[Unit].nValue=0
                                 Devices[DeviceID].Units[Unit].sValue=str(fieldValue)+";1" # supply actual watts , kwh are calculated by Domoticz.
                                 Devices[DeviceID].Units[Unit].Update()
@@ -462,8 +496,12 @@ class MarstekPlugin:
                                 Level=30
                             elif fieldValue=="Passive": 
                                 Level=40
+                            elif fieldValue=="UPS":
+                                Level=50
                             Devices[modeswitchDeviceID].Units[modeSelectorUnit].sValue=str(Level)
                             Devices[modeswitchDeviceID].Units[modeSelectorUnit].Update()
+            else:
+                if debug: Domoticz.Log("not processing values "+source+" "+Dev+" "+str(response[Dev]))
 
 
 
