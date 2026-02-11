@@ -1,9 +1,12 @@
 # Marstek Venus A plugin for Domoticz, developed using Basic Python Plugin Framework as provided by GizMoCuz for Domoticz
 #
 # author WillemD61
-# version 1.0.0. initial release
-# version 1.0.1
-# - correction for device type 248 processing
+# version 1.0.0
+# version 1.0.1 
+#   * fixed the processing of device type 248
+# version 1.0.2 
+#   * replaced most types 248/1 with 243/29 => supply Watts and Domoticz calculates kWh (new install required)
+#   * improved error handling in validation of input parameters to mode switch
 #
 # This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge)
 # The library was extended to cover all elements from the specification and was made more responsive and reliable.
@@ -23,7 +26,7 @@
 # So the venus_api_v2 library now covers the full specification of Marstek Open API and can be used in any python program.
 #
 # Even though the functions are now present in the API library, the current version of this plugin does NOT (!!!) do the following:
-#  1) implement the marstek.GetDevice UDP discovery to find Marstek devices on the network (par. 2.2.2 and 3.1.1). Instead, the Marstek device
+#  1) implement the marstek.GetDevice UDP discovery to find Marstek devices on the network (par. 2.2.2 and 3.1.1). Instead, the Marstek device 
 #     to be used has to be specified manually in the configuration parameters of this plugin.
 #  2) implement the Wifi.GetStatus (par 3.2.1) to configure or obtain Wifi info
 #  3) implement the BLE.GetStatus (par 3.3.1) to obtain Bluetooth info
@@ -44,7 +47,7 @@
 # 1) The specification includes reference to ID and SRC, maybe for multi-system environments, but that is not clear.
 # 2) par 3.2.1 : the wifi response also includes a wifi_mac field
 # 3) par 3.5.1 : the pv response also includes a pv_state field and reports all fields for each  of the PV connections (4x)
-# 4) par 3.6.3 : the response depends on the mode. For auto (=self-consumption) the energy meter mode fields are also includes but
+# 4) par 3.6.3 : the response depends on the mode. For auto (=self-consumption) the energy meter mode fields are also includes but 
 #                often with all values=0. For AI the energy meter mode fields are included with actual values. Note also that the UPS mode
 #                in the APP is reported as a manual mode. (in UPS mode backup-power is switched on)
 # 5) par 3.7.1 : the response also includes total input energy and output energy of the P1 meter.
@@ -113,45 +116,45 @@ DEVSLIST={
     "bat_capacity"    : [5,  113,  0, 0, {}, 1   ,"Remaining Capacity","BAT"],
     "rated_capacity"  : [6,  113,  0, 0, {}, 1   ,"Rated Capacity","BAT"],
 # response PV.GetStatus
-    "pv1_power"       : [7,  248,  1, 0, {}, 1   ,"PV1 power","PV"], # 4 groups, although not in specification ver. 1.0
+    "pv1_power"       : [7,  243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"PV1 power","PV"], # 4 groups, although not in specification ver. 1.0
     "pv1_voltage"     : [8,  243,  8, 0, {}, 1   ,"PV1 voltage","PV"],
     "pv1_current"     : [9,  243, 23, 0, {}, 1   ,"PV1 current","PV"],
     "pv1_state"       : [10, 244, 73, 0, {}, 1   ,"PV1 state","PV"], # pv_state not in specification ver. 1.0
-    "pv2_power"       : [11, 248,  1, 0, {}, 1   ,"PV2 power","PV"],
+    "pv2_power"       : [11, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"PV2 power","PV"],
     "pv2_voltage"     : [12, 243,  8, 0, {}, 1   ,"PV2 voltage","PV"],
     "pv2_current"     : [13, 243, 23, 0, {}, 1   ,"PV2 current","PV"],
     "pv2_state"       : [14, 244, 73, 0, {}, 1   ,"PV2 state","PV"],
-    "pv3_power"       : [15, 248,  1, 0, {}, 1   ,"PV3 power","PV"],
+    "pv3_power"       : [15, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"PV3 power","PV"],
     "pv3_voltage"     : [16, 243,  8, 0, {}, 1   ,"PV3 voltage","PV"],
     "pv3_current"     : [17, 243, 23, 0, {}, 1   ,"PV3 current","PV"],
     "pv3_state"       : [18, 244, 73, 0, {}, 1   ,"PV3 state","PV"],
-    "pv4_power"       : [19, 248,  1, 0, {}, 1   ,"PV4 power","PV"],
+    "pv4_power"       : [19, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"PV4 power","PV"],
     "pv4_voltage"     : [20, 243,  8, 0, {}, 1   ,"PV4 voltage","PV"],
     "pv4_current"     : [21, 243, 23, 0, {}, 1   ,"PV4 current","PV"],
     "pv4_state"       : [22, 244, 73, 0, {}, 1   ,"PV4 state","PV"],
 # response ES.GetMode
-    "mode"            : [23, 243, 19, 0, {}, 1   ,"ES mode","ESM"],
-    "ongrid_power"    : [24, 248,  1, 0, {}, 1   ,"ES on-grid power","ESM"], # duplicate ?
-    "offgrid_power"   : [25, 248,  1, 0, {}, 1   ,"ES off-grid power","ESM"], # duplicate ?
-    "bat_soc"         : [26, 243,  6, 0, {}, 1   ,"ES Battery Soc","ESM"], # duplicate ?
+    "mode"            : [23, 243, 19, 0, {}, 1   ,"ESM mode","ESM"],
+    "ongrid_power"    : [24, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESM on-grid power","ESM"], # duplicate ?
+    "offgrid_power"   : [25, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESM off-grid power","ESM"], # duplicate ?
+    "bat_soc"         : [26, 243,  6, 0, {}, 1   ,"ESM Battery Soc","ESM"], # duplicate ? 
 # note in case of auto or AI mode the response of Es.GetMode also includes EM.GetStatus data
 # reponse ES.GetStatus
-    "es_bat_soc"      : [27, 243,  6, 0, {}, 1   ,"ES Total SOC","ESS"],  # duplicate ? note es_ added to name to create unique key
-    "bat_cap"         : [28, 113,  0, 0, {}, 1   ,"ES Total capacity","ESS"], # duplicate value but still unique name (other is bat_capacity)
-    "pv_power"        : [29, 248,  1, 0, {}, 1   ,"ES PV charging power","ESS"],
-    "es_ongrid_power" : [30, 248,  1, 0, {}, 1   ,"ES on-grid power","ESS"], # duplicate ? note es_ added to name to create unique key
-    "es_offgrid_power": [31, 248,  1, 0, {}, 1   ,"ES off-grid power","ESS"], # duplicate ? note es_ added to name to create unique key
+    "es_bat_soc"      : [27, 243,  6, 0, {}, 1   ,"ESS Total SOC","ESS"],  # duplicate ? note es_ added to name to create unique key
+    "bat_cap"         : [28, 113,  0, 0, {}, 1   ,"ESS Total capacity","ESS"], # duplicate value but still unique name (other is bat_capacity)
+    "pv_power"        : [29, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS PV charging power","ESS"],
+    "es_ongrid_power" : [30, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS on-grid power","ESS"], # duplicate ? note es_ added to name to create unique key
+    "es_offgrid_power": [31, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESS off-grid power","ESS"], # duplicate ? note es_ added to name to create unique key
 #    "bat_power"      : "ES battery power W"], # not present in ES.getStatus response, although in specification ver 1.0
-    "total_pv_energy"          : [32, 113,  0, 0, {}, 1   ,"ES Total PV energy generated","ESS"],
-    "total_grid_output_energy" : [33, 113,  0, 0, {}, 1   ,"ES Total grid output energy","ESS"],
-    "total_grid_input_energy"  : [34, 113,  0, 0, {}, 1   ,"ES Total grid input energy","ESS"],
-    "total_load_energy"        : [35, 113,  0, 0, {}, 1   ,"ES Total off-grid energy consumed","ESS"],
+    "total_pv_energy"          : [32, 113,  0, 0, {}, 1   ,"ESS Total PV energy generated","ESS"],
+    "total_grid_output_energy" : [33, 113,  0, 0, {}, 1   ,"ESS Total grid output energy","ESS"],
+    "total_grid_input_energy"  : [34, 113,  0, 0, {}, 1   ,"ESS Total grid input energy","ESS"],
+    "total_load_energy"        : [35, 113,  0, 0, {}, 1   ,"ESS Total off-grid energy consumed","ESS"],
 # response EM.GetStatus
     "ct_state"        : [36, 244, 73, 0, {}, 1,  "P1 CT state","EMS"],
-    "a_power"         : [37, 248,  1, 0, {}, 1   ,"P1 Phase A power","EMS"],
-    "b_power"         : [38, 248,  1, 0, {}, 1   ,"P1 Phase B power","EMS"],
-    "c_power"         : [39, 248,  1, 0, {}, 1   ,"P1 Phase C power","EMS"],
-    "total_power"     : [40, 248,  1, 0, {}, 1   ,"P1 Total power","EMS"],
+    "a_power"         : [37, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Phase A power","EMS"],
+    "b_power"         : [38, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Phase B power","EMS"],
+    "c_power"         : [39, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Phase C power","EMS"],
+    "total_power"     : [40, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Total power","EMS"],
     "input_energy"    : [41, 113,  0, 0, {}, 0.1 ,"P1 Total input energy","EMS"], # in response, although not in specification ver 1.0
     "output_energy"   : [42, 113,  0, 0, {}, 0.1 ,"P1 Total output energy","EMS"], # in response, although not in specification ver 1.0
 # device for holding one single manual mode setting
@@ -230,103 +233,127 @@ class MarstekPlugin:
         if debug: Domoticz.Log("onCommand called for Device " + str(DeviceID) + " Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
         modeSelectorUnit=DEVSLIST["select Marstek mode"][0]
         expectedDeviceID="{:04x}{:04x}".format(self.Hwid,modeSelectorUnit)
-        if str(Command)=="Set Level" and DeviceID==expectedDeviceID: # it is a mode change initiated using the selector switch
-            client = VenusAPIClient(ip=self.IPAddress, port=self.Port, timeout=5)
-            if Level==10: # auto mode (=self consumption)
-                success=client.set_auto_mode()
-                if success:
-                    if debug: Domoticz.Log("Succesfully changed to auto mode (=self consumption mode).")
-                    Devices[DeviceID].Units[Unit].sValue=str(Level)
-                    Devices[DeviceID].Units[Unit].Update()
-                else:
-                    Domoticz.Log("Change to auto mode (=self consumption mode) failed.")
-            elif Level==20: # AI mode
-                success=client.set_ai_mode()
-                if success:
-                    Domoticz.Log("Succesfully changed to AI optimisation mode.")
-                    Devices[DeviceID].Units[Unit].sValue=str(Level)
-                    Devices[DeviceID].Units[Unit].Update()
-                else:
-                    Domoticz.Log("Change to AI optimisation mode failed.")
-            elif Level==30: # manual mode
-                # check and build parameters. the following devices should contain config data
-                timeperiodUnit=DEVSLIST["time_period"][0]
-                starttimeUnit=DEVSLIST["start_time"][0]
-                endtimeUnit=DEVSLIST["end_time"][0]
-                weekdayUnit=DEVSLIST["week_set"][0]
-                mmpowerUnit=DEVSLIST["mm_power"][0]
-                timeperiod=Devices["{:04x}{:04x}".format(self.Hwid,timeperiodUnit)].Units[timeperiodUnit].sValue
-                starttime=Devices["{:04x}{:04x}".format(self.Hwid,starttimeUnit)].Units[starttimeUnit].sValue
-                endtime=Devices["{:04x}{:04x}".format(self.Hwid,endtimeUnit)].Units[endtimeUnit].sValue
-                weekday=Devices["{:04x}{:04x}".format(self.Hwid,weekdayUnit)].Units[weekdayUnit].sValue
-                mmpower=Devices["{:04x}{:04x}".format(self.Hwid,mmpowerUnit)].Units[mmpowerUnit].sValue
-                if int(timeperiod)>=0 and int(timeperiod)<=9:
-                    startHr=int(starttime[0:2])
-                    startMm=int(starttime[3:5])
-                    endHr=int(endtime[0:2])
-                    endMm=int(endtime[3:5])
-                    if (startHr>=0 and startHr<=23 and startMm>=0 and startMm<=59) and (endHr>=0 and endHr<=23 and endMm>=0 and endMm<=59):
-                        if (startHr*60+startMm)<(endHr*60+endMm):
-                            starttimestring=starttime[0:2]+":"+starttime[3:5] # make sure separator is ":"
-                            endtimestring=endtime[0:2]+":"+endtime[3:5] # make sure separator is ":"
-                            weekdayValid=True
-                            weekdayvalue=0
-                            bitvalue=64
-                            # should be string of 7 x 0 or 1, indicating on/off of weekday starting with Sunday, to match the APP
-                            # note the value passed in the API is low to high bit, starting with Monday
-                            for dayCharacter in weekday:
-                                if (dayCharacter!="0" and dayCharacter!="1") or len(weekday)!=7:
-                                    weekdayValid=False
-                                else:
-                                    weekdayvalue+=bitvalue*int(dayCharacter)
-                                if bitvalue==64:
-                                    bitvalue=1
-                                else:
-                                    bitvalue=bitvalue*2
-                            if weekdayValid:
-                                mmpower=int(mmpower)
-                                # positive is charge, negative is discharge
-                                if mmpower<=1200 and mmpower>=-1*self.maxOutputPower:
-                                    # all validation done
-                                    enable=1 # assuming period should be active
-                                    success=client.set_manual_mode(mmpower,int(timeperiod),starttimestring,endtimestring,weekdayvalue,enable)
-                                    if success:
-                                        Domoticz.Log("Succesfully changed to manual mode."+str(mmpower))
-                                        Devices[DeviceID].Units[Unit].sValue=str(Level)
-                                        Devices[DeviceID].Units[Unit].Update()
-                                    else:
-                                        Domoticz.Log("Change to manual mode failed")
-                                else:
-                                    Domoticz.Log("Error: power settings not valid for manual mode.")
-                            else:
-                                Domoticz.Log("Error: weekday settings not valid for manual mode, must be 7x 0/1")
-                        else:
-                            Domoticz.Log("Error: start time must be before end time for manual mode")
-                    else:
-                        Domoticz.Log("No valid start or end time set for manual mode")
-                else:
-                    Domoticz.Log("No valid timeperiod set for manual mode")
-            elif Level==40: # passive mode
-                # check and build parameters for passive mode
-                pmpowerUnit=DEVSLIST["pm_power"][0]
-                countdownUnit=DEVSLIST["countdown"][0]
-                pmpower=Devices["{:04x}{:04x}".format(self.Hwid,pmpowerUnit)].Units[pmpowerUnit].sValue
-                countdown=Devices["{:04x}{:04x}".format(self.Hwid,countdownUnit)].Units[countdownUnit].sValue
-                pmpower=int(pmpower)
-                countdown=int(countdown)
-                if pmpower<=1200 and pmpower>=-1*self.maxOutputPower:
-                    # all validation done
-                    success=client.set_passive_mode(pmpower,countdown)
+        maxNrOfAttempts=3
+        nrAttemptsDone=0
+        try:
+            if str(Command)=="Set Level" and DeviceID==expectedDeviceID: # it is a mode change initiated using the selector switch
+                client = VenusAPIClient(ip=self.IPAddress, port=self.Port, timeout=5)
+                if Level==10: # auto mode (=self consumption)
+                    success=client.set_auto_mode()
+                    while not success and nrAttemptsDone<maxNrOfAttempts:
+                        Domoticz.Error("Change to auto mode (=self consumption mode) failed, retrying ...")
+                        success=client.set_auto_mode()
+                        nrAttemptsDone+=1
                     if success:
-                        Domoticz.Log("Succesfully changed to passive mode.")
+                        if debug: Domoticz.Log("Succesfully changed to auto mode (=self consumption mode).")
                         Devices[DeviceID].Units[Unit].sValue=str(Level)
                         Devices[DeviceID].Units[Unit].Update()
                     else:
-                        Domoticz.Log("Change to passive mode failed")
-                else:
-                    Domoticz.Log("No valid power setting for passive mode")
-        else:
-            if debug: Domoticz.Log("Command "+str(Command)+" DeviceID "+DeviceID+" ExpectedID "+expectedDeviceID)
+                        Domoticz.Error("Change to auto mode (=self consumption mode) failed.")
+                elif Level==20: # AI mode
+                    success=client.set_ai_mode()
+                    while not success and nrAttemptsDone<maxNrOfAttempts:
+                        Domoticz.Error("Change to AI optimisation mode failed, retrying ...")
+                        success=client.set_ai_mode()
+                        nrAttemptsDone+=1
+                    if success:
+                        Domoticz.Log("Succesfully changed to AI optimisation mode.")
+                        Devices[DeviceID].Units[Unit].sValue=str(Level)
+                        Devices[DeviceID].Units[Unit].Update()
+                    else:
+                        Domoticz.Error("Change to AI optimisation mode failed.")
+                elif Level==30: # manual mode
+                    # check and build parameters. the following devices should contain config data
+                    timeperiodUnit=DEVSLIST["time_period"][0]
+                    starttimeUnit=DEVSLIST["start_time"][0]
+                    endtimeUnit=DEVSLIST["end_time"][0]
+                    weekdayUnit=DEVSLIST["week_set"][0]
+                    mmpowerUnit=DEVSLIST["mm_power"][0]
+                    timeperiod=Devices["{:04x}{:04x}".format(self.Hwid,timeperiodUnit)].Units[timeperiodUnit].sValue
+                    starttime=Devices["{:04x}{:04x}".format(self.Hwid,starttimeUnit)].Units[starttimeUnit].sValue
+                    endtime=Devices["{:04x}{:04x}".format(self.Hwid,endtimeUnit)].Units[endtimeUnit].sValue
+                    weekday=Devices["{:04x}{:04x}".format(self.Hwid,weekdayUnit)].Units[weekdayUnit].sValue
+                    mmpower=Devices["{:04x}{:04x}".format(self.Hwid,mmpowerUnit)].Units[mmpowerUnit].sValue
+                    if int(timeperiod)>=0 and int(timeperiod)<=9:
+                        startHr=int(starttime[0:2])
+                        startMm=int(starttime[3:5])
+                        endHr=int(endtime[0:2])
+                        endMm=int(endtime[3:5])
+                        if (startHr>=0 and startHr<=23 and startMm>=0 and startMm<=59) and (endHr>=0 and endHr<=23 and endMm>=0 and endMm<=59):
+                            if (startHr*60+startMm)<(endHr*60+endMm):
+                                starttimestring=starttime[0:2]+":"+starttime[3:5] # make sure separator is ":"
+                                endtimestring=endtime[0:2]+":"+endtime[3:5] # make sure separator is ":"
+                                weekdayValid=True
+                                weekdayvalue=0
+                                bitvalue=64
+                                # should be string of 7 x 0 or 1, indicating on/off of weekday starting with Sunday, to match the APP
+                                # note the value passed in the API is low to high bit, starting with Monday
+                                for dayCharacter in weekday:
+                                    if (dayCharacter!="0" and dayCharacter!="1") or len(weekday)!=7:
+                                        weekdayValid=False
+                                    else:
+                                        weekdayvalue+=bitvalue*int(dayCharacter)
+                                    if bitvalue==64:
+                                        bitvalue=1
+                                    else:
+                                        bitvalue=bitvalue*2
+                                if weekdayValid:
+                                    mmpower=int(mmpower)
+                                    # positive is charge, negative is discharge
+                                    if mmpower<=1200 and mmpower>=-1*self.maxOutputPower:
+                                        # all validation done
+                                        enable=1 # assuming period should be active
+                                        success=client.set_manual_mode(mmpower,int(timeperiod),starttimestring,endtimestring,weekdayvalue,enable)
+                                        while not success and nrAttemptsDone<maxNrOfAttempts:
+                                            Domoticz.Error("Change to manual mode failed, retrying ...")
+                                            success=client.set_manual_mode(mmpower,int(timeperiod),starttimestring,endtimestring,weekdayvalue,enable)
+                                            nrAttemptsDone+=1
+                                        if success:
+                                            Domoticz.Log("Succesfully changed to manual mode."+str(mmpower))
+                                            Devices[DeviceID].Units[Unit].sValue=str(Level)
+                                            Devices[DeviceID].Units[Unit].Update()
+                                        else:
+                                            Domoticz.Error("Change to manual mode failed")
+                                    else:
+                                        Domoticz.Error("Error: power settings not valid for manual mode.")
+                                else:
+                                    Domoticz.Error("Error: weekday settings not valid for manual mode, must be 7x 0/1")
+                            else:
+                                Domoticz.Error("Error: start time must be before end time for manual mode")
+                        else:
+                            Domoticz.Error("No valid start or end time set for manual mode")
+                    else:
+                        Domoticz.Error("No valid timeperiod set for manual mode")
+                elif Level==40: # passive mode
+                    # check and build parameters for passive mode
+                    pmpowerUnit=DEVSLIST["pm_power"][0]
+                    countdownUnit=DEVSLIST["countdown"][0]
+                    pmpower=Devices["{:04x}{:04x}".format(self.Hwid,pmpowerUnit)].Units[pmpowerUnit].sValue
+                    countdown=Devices["{:04x}{:04x}".format(self.Hwid,countdownUnit)].Units[countdownUnit].sValue
+                    pmpower=int(pmpower)
+                    countdown=int(countdown)
+                    if pmpower<=1200 and pmpower>=-1*self.maxOutputPower:
+                        # all validation done
+                        success=client.set_passive_mode(pmpower,countdown)
+                        while not success and nrAttemptsDone<maxNrOfAttempts:
+                            Domoticz.Error("Change to passive mode failed, retrying ...")
+                            success=client.set_passive_mode(pmpower,countdown)
+                            nrAttemptsDone+=1
+                        if success:
+                            Domoticz.Log("Succesfully changed to passive mode.")
+                            Devices[DeviceID].Units[Unit].sValue=str(Level)
+                            Devices[DeviceID].Units[Unit].Update()
+                        else:
+                            Domoticz.Error("Change to passive mode failed")
+                    else:
+                        Domoticz.Error("No valid power setting for passive mode")
+            else:
+                if debug: Domoticz.Log("Command "+str(Command)+" DeviceID "+DeviceID+" ExpectedID "+expectedDeviceID)
+        except ValueError:
+            Domoticz.Error("Change of mode failed, please check format of input parameters for conversion to integer.")
+        except:
+            Domoticz.Error("Change of mode failed, an unexpected error occurred.")
+
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
         Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
@@ -399,6 +426,12 @@ class MarstekPlugin:
                             fieldText=str(fieldValue)
                             Devices[DeviceID].Units[Unit].sValue=fieldText
                             Devices[DeviceID].Units[Unit].Update()
+                        if ((type==243) and (subtype==29)): # kwh device, instant+counter
+                            fieldValue=response[Dev]
+                            if fieldValue>=0 and fieldValue<10000 : # only reasonable values will be processed
+                                Devices[DeviceID].Units[Unit].nValue=0
+                                Devices[DeviceID].Units[Unit].sValue=str(fieldValue)+";1" # supply actual watts , kwh are calculated by Domoticz.
+                                Devices[DeviceID].Units[Unit].Update()
                         if (type==244) : # switch device
                             fieldValue=response[Dev]
                             if fieldValue==True:
@@ -415,19 +448,19 @@ class MarstekPlugin:
                             fieldText=str(fieldValue)
                             Devices[DeviceID].Units[Unit].sValue=fieldText
                             Devices[DeviceID].Units[Unit].Update()
-                       
+
                         if DevName=="mode":
                             # mode switch will follow mode status received
                             modeSelectorUnit=DEVSLIST["select Marstek mode"][0]
                             modeswitchDeviceID="{:04x}{:04x}".format(self.Hwid,modeSelectorUnit)
                             fieldValue=response[Dev]
-                            if fieldValue=="Auto":
+                            if fieldValue=="Auto": 
                                 Level=10
-                            elif fieldValue=="AI":
+                            elif fieldValue=="AI": 
                                 Level=20
-                            elif fieldValue=="Manual":
+                            elif fieldValue=="Manual": 
                                 Level=30
-                            elif fieldValue=="Passive":
+                            elif fieldValue=="Passive": 
                                 Level=40
                             Devices[modeswitchDeviceID].Units[modeSelectorUnit].sValue=str(Level)
                             Devices[modeswitchDeviceID].Units[modeSelectorUnit].Update()
