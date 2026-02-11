@@ -51,6 +51,7 @@ So the venus_api_v2 library now covers the full specification of Marstek Open AP
                often with all values=0. For AI the energy meter mode fields are included with actual values. Note also that the UPS mode
                in the APP is reported as a manual mode. (in UPS mode backup-power is switched on)
 5) par 3.7.1 : the response also includes total input energy and output energy of the P1 meter.
+6) Passive mode requires power and countdown as parameters, but these don't seem to have any effect. Passive is passive, so no action, no mode active.
 
 Some duplicate values are present when looking at all data responses (soc 3x, ongrid and offgrid power 2x, EM data depending on mode 2x)
 For now these are included but might be removed later.
