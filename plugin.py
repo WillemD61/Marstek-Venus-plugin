@@ -3,9 +3,9 @@
 # author WillemD61
 # version 1.0.0
 #   * initial release
-# version 1.0.1 
+# version 1.0.1
 #   * fixed the processing of device type 248
-# version 1.0.2 
+# version 1.0.2
 #   * replaced most types 248/1 with 243/29 => supply Watts and Domoticz calculates kWh (new install required)
 #   * improved error handling in validation of input parameters for mode switch
 # version 1.0.3
@@ -14,6 +14,10 @@
 #   * negative power values allowed
 #   * more clear devices names
 #   * additional debug level in startup parameters
+# version 1.0.4
+#   * one P1 meter device added to hold all three values total_power, input_energy and output_energy (3 separate devices left alive, can be disable if desired)
+#   * extended timeout handling, after 3 full cycle failures of all 6 data retrieval commands, an email will be sent.
+#   * note: please also reinstall the venus_api_v2.py file for inclusion of the UPS mode
 #
 # This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge)
 # The library was extended to cover all elements from the specification and was made more responsive and reliable.
@@ -33,7 +37,7 @@
 # So the venus_api_v2 library now covers the full specification of Marstek Open API and can be used in any python program.
 #
 # Even though the functions are now present in the API library, the current version of this plugin does NOT (!!!) do the following:
-#  1) implement the marstek.GetDevice UDP discovery to find Marstek devices on the network (par. 2.2.2 and 3.1.1). Instead, the Marstek device 
+#  1) implement the marstek.GetDevice UDP discovery to find Marstek devices on the network (par. 2.2.2 and 3.1.1). Instead, the Marstek device
 #     to be used has to be specified manually in the configuration parameters of this plugin.
 #  2) implement the Wifi.GetStatus (par 3.2.1) to configure or obtain Wifi info
 #  3) implement the BLE.GetStatus (par 3.3.1) to obtain Bluetooth info
@@ -54,10 +58,11 @@
 # 1) The specification includes reference to ID and SRC, maybe for multi-system environments, but that is not clear.
 # 2) par 3.2.1 : the wifi response also includes a wifi_mac field
 # 3) par 3.5.1 : the pv response also includes a pv_state field and reports all fields for each  of the PV connections (4x)
-# 4) par 3.6.3 : the response depends on the mode. For auto (=self-consumption) the energy meter mode fields are also includes but 
+# 4) par 3.6.3 : the response depends on the mode. For auto (=self-consumption) the energy meter mode fields are also includes but
 #                often with all values=0. For AI the energy meter mode fields are included with actual values. Note also that the UPS mode
 #                in the APP is reported as a manual mode. (in UPS mode backup-power is switched on)
 # 5) par 3.7.1 : the response also includes total input energy and output energy of the P1 meter.
+# 6) the specifation does not mention UPS mode but since it it possible in the App, it was tested and it works
 #
 # Some duplications are present when looking at all responses (soc 3x, ongrid and offgrid power 2x, EM data depending on mode 2x
 
@@ -110,6 +115,8 @@
 
 import DomoticzEx as Domoticz
 import json,requests   # make sure these are available in your system environment
+import time
+from datetime import datetime
 from requests.exceptions import Timeout
 
 from venus_api_v2 import VenusAPIClient
@@ -149,7 +156,7 @@ DEVSLIST={
     "mode"            : [23, 243, 19, 0, {}, 1   ,"ESM mode","ESM"],
     "ongrid_power"    : [24, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESM on-grid power","ESM"], # duplicate ?
     "offgrid_power"   : [25, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"ESM off-grid power","ESM"], # duplicate ?
-    "bat_soc"         : [26, 243,  6, 0, {}, 1   ,"ESM Battery Soc","ESM"], # duplicate ? 
+    "bat_soc"         : [26, 243,  6, 0, {}, 1   ,"ESM Battery Soc","ESM"], # duplicate ?
 # note in case of auto or AI mode the response of Es.GetMode also includes EM.GetStatus data
 # reponse ES.GetStatus
     "es_bat_soc"      : [27, 243,  6, 0, {}, 1   ,"ESS Total SOC","ESS"],  # duplicate ? note es_ added to name to create unique key
@@ -167,7 +174,7 @@ DEVSLIST={
     "a_power"         : [37, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Phase A power","EMS"],
     "b_power"         : [38, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Phase B power","EMS"],
     "c_power"         : [39, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 Phase C power","EMS"],
-    "total_power"     : [40, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 A+B+C power","EMS"],
+    "total_power"     : [40, 243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"P1 A+B+C power","EMS"], # 3 devices can be disabled. A P1 meter device (51) has been added to hold all 3.
     "input_energy"    : [41, 113,  0, 0, {}, 0.1 ,"P1 input from grid","EMS"], # in response, although not in specification ver 1.0
     "output_energy"   : [42, 113,  0, 0, {}, 0.1 ,"P1 output to grid","EMS"], # in response, although not in specification ver 1.0
 # device for holding one single manual mode setting
@@ -177,12 +184,13 @@ DEVSLIST={
     "week_set"        : [46, 243, 19, 0, {}, 1   ,"Manual Mode weekdays","MM"],
     "mm_power"        : [47, 248,  1, 0, {}, 1   ,"Manual Mode power","MM"], # note mm_ added to create unique key
 # device for holding passive mode power and countdown
-# removed because they do not have an effect
+# removed in version 1.0.3 because it was determined that these fields do not have an effect
 #    "pm_power"        : [48, 248,  1, 0, {}, 1   ,"Passive Mode power","PM"], # note pm_ added to create unique key
 #    "countdown"       : [49, 243, 19, 0, {}, 1   ,"Passive Mode countdown s","PM"],
 # device to activate mode switch
 # do not change name, used on onCommand code below
     "select Marstek mode"     : [50, 244, 62, 18, {"LevelActions":"|||||","LevelNames":"|AutoSelf|AI|Manual|Passive|UPS","LevelOffHidden":"true","SelectorStyle":"0"}, 1 ,"Select Marstek mode","SM"],
+    "P1 meter"   : [51, 250,  1, 0, {}, 1 ,"P1 meter","EMS"], # new P1 device to hold EMS total_power, input_energy and output_energy
 } # end of dictionary
 
 class MarstekPlugin:
@@ -205,6 +213,7 @@ class MarstekPlugin:
             self.heartbeatWaits=int(int(Parameters["Mode1"])/30 - 1)
         self.notificationsOn=(Parameters["Mode2"]=="Yes")
         self.emailAlertSent=False
+        self.failedCycleCount=0
         self.showDataLog=(Parameters["Mode3"]=="Yes")
         self.maxOutputPower=int(Parameters["Mode4"])
         debug=(Parameters["Mode5"]=="Yes")
@@ -341,7 +350,7 @@ class MarstekPlugin:
                     else:
                         Domoticz.Error("No valid timeperiod set for manual mode")
                 elif Level==40: # passive mode
-                    # check and build parameters for passive mode
+                    # check and build parameters for passive mode, note: removed because they did not have an effect
                     #pmpowerUnit=DEVSLIST["pm_power"][0]
                     #countdownUnit=DEVSLIST["countdown"][0]
                     #pmpower=Devices["{:04x}{:04x}".format(self.Hwid,pmpowerUnit)].Units[pmpowerUnit].sValue
@@ -368,7 +377,7 @@ class MarstekPlugin:
                         Domoticz.Error("No valid power setting for passive mode")
                 elif Level==50: # UPS
                     # check and build parameters for UPS mode
-                    # note power is required but does not seem to have an effect
+                    # note power is required but does not seem to have an effect, 0 used
                     upower=0
                     success=client.set_ups_mode(upower)
                     while not success and nrAttemptsDone<maxNrOfAttempts:
@@ -396,8 +405,8 @@ class MarstekPlugin:
         Domoticz.Log("onDisconnect called")
 
     def onHeartbeat(self):
-        Domoticz.Log("onHeartbeat called")
         self.heartbeatCounter+=1
+        if debug: Domoticz.Log("onHeartbeat called")
         if self.stillbusy and self.heartbeatCounter<5: # max 5 cycles total wait
             if debug: Domoticz.Log("Skipping another heartbeat - data collection still busy")
             return
@@ -427,8 +436,8 @@ class MarstekPlugin:
 
                 # first check whether any unexpected/new fields are received, avoid key errors
                 if DEVSLIST.get(DevName)==None:
-                    Domoticz.Log("Unexpected/new field received, source : "+source+" field "+DevName)
-                    Domoticz.Log("API might have changed. Needs to be investigated.")
+                    Domoticz.Error("Unexpected/new field received, source : "+source+" field "+DevName)
+                    Domoticz.Error("API might have changed. Needs to be investigated.")
                 else:
 
                     type=DEVSLIST[DevName][1]
@@ -488,18 +497,41 @@ class MarstekPlugin:
                             modeSelectorUnit=DEVSLIST["select Marstek mode"][0]
                             modeswitchDeviceID="{:04x}{:04x}".format(self.Hwid,modeSelectorUnit)
                             fieldValue=response[Dev]
-                            if fieldValue=="Auto": 
+                            if fieldValue=="Auto":
                                 Level=10
-                            elif fieldValue=="AI": 
+                            elif fieldValue=="AI":
                                 Level=20
-                            elif fieldValue=="Manual": 
+                            elif fieldValue=="Manual":
                                 Level=30
-                            elif fieldValue=="Passive": 
+                            elif fieldValue=="Passive":
                                 Level=40
                             elif fieldValue=="UPS":
                                 Level=50
                             Devices[modeswitchDeviceID].Units[modeSelectorUnit].sValue=str(Level)
                             Devices[modeswitchDeviceID].Units[modeSelectorUnit].Update()
+
+                        # combine 3 EMS values onto one P1 device
+                        if source=="EMS":
+                            if DevName=="total_power":
+                                self.saveTotalPower=int(response[Dev])
+                            if DevName=="input_energy":
+                                self.saveInputEnergy=int(int(response[Dev])/10)
+                            if DevName=="output_energy":
+                                self.saveOutputEnergy=int(int(response[Dev])/10)
+                                # this is last value of 3, so now it can be processed
+                                if debug: Domoticz.Log("Updating P1 meter "+str(self.saveTotalPower)+" "+str(self.saveInputEnergy)+" "+str(self.saveOutputEnergy))
+                                Unit=51 # fixed nr !!!
+                                DeviceID="{:04x}{:04x}".format(self.Hwid,Unit)
+                                Devices[DeviceID].Units[Unit].Refresh()
+                                if self.saveTotalPower>=0:
+                                    svalueString=str(self.saveInputEnergy)+";0;"+str(self.saveOutputEnergy)+";0;"+str(self.saveTotalPower)+";0"
+                                else:
+                                    svalueString=str(self.saveInputEnergy)+";0;"+str(self.saveOutputEnergy)+";0;0;"+str(-1*self.saveTotalPower)
+                                if debug: Domoticz.Log(svalueString)
+                                Devices[DeviceID].Units[Unit].sValue=svalueString
+                                Devices[DeviceID].Units[Unit].nValue=0
+                                Devices[DeviceID].Units[Unit].Update()
+
             else:
                 if debug: Domoticz.Log("not processing values "+source+" "+Dev+" "+str(response[Dev]))
 
@@ -509,46 +541,67 @@ class MarstekPlugin:
         if debug: Domoticz.Log("Marstek Plugin getVenusData called")
         self.Hwid=Parameters['HardwareID']
         try:
+            self.someResponseReceived=False
             client = VenusAPIClient(ip=self.IPAddress, port=self.Port, timeout=5)
             response=client.get_battery_status()
-            if debug: Domoticz.Log("battery status data received"+str(response))
+            if debug: Domoticz.Log("battery status data received: "+str(response))
             if response is not None:
+                self.someResponseReceived=True
                 self.processValues("BAT",response)
 
             response=client.get_pv_status()
-            if debug: Domoticz.Log("pv status data received"+str(response))
+            if debug: Domoticz.Log("pv status data received: "+str(response))
             if response is not None:
+                self.someResponseReceived=True
                 self.processValues("PV",response)
 
             response=client.get_em_status()
-            if debug: Domoticz.Log("em status data received"+str(response))
+            if debug: Domoticz.Log("em status data received: "+str(response))
             if response is not None:
+                self.someResponseReceived=True
                 self.processValues("EMS",response)
 
             response=client.get_energy_status()
-            if debug: Domoticz.Log("es status data received"+str(response))
+            if debug: Domoticz.Log("es status data received: "+str(response))
             if response is not None:
+                self.someResponseReceived=True
                 self.processValues("ESS",response)
 
             response=client.get_mode()
-            if debug: Domoticz.Log("get mode data received"+str(response))
+            if debug: Domoticz.Log("get mode data received: "+str(response))
             if response is not None:
+                self.someResponseReceived=True
                 self.processValues("ESM",response)
 
-            if self.emailAlertSent==True:
+            if self.emailAlertSent==True and self.someResponseReceived==True:
+                if debug: Domoticz.Log("Communication restored. Data was received again during getVenusData cycle")
                 self.emailAlertSent=False
-                #sendemail=requests.get("http://127.0.0.1:8080/json.htm?type=command&param=sendnotification&subject='Venus comms working again'&body='Problem solved'")
+                self.failedCycleCount=0
+                sendemail=requests.get("http://127.0.0.1:8080/json.htm?type=command&param=sendnotification&subject='Venus comms working again'&body='Problem solved'")
 
-        except Timeout:
-            Domoticz.Error("Timeout on getting Venus data. Check connection.")
-            if self.notificationsOn and self.emailAlertSent==False:
-                #sendemail=requests.get("http://127.0.0.1:8080/json.htm?type=command&param=sendnotification&subject='ATTENTION: Venus communication timeout'&body='Please check'")
+            if self.someResponseReceived==False:
+                Domoticz.Error("No data received during complete cycle. Cycle nr "+str(self.failedCycleCount+1))
+                raise TimeoutError
+            return True
+
+        except TimeoutError:
+            Domoticz.Error("Timeout on getting Marstek Venus data. Check connection and/or Open API setting in App.")
+            self.failedCycleCount+=1
+            if self.notificationsOn and self.emailAlertSent==False and self.failedCycleCount>=3:
+                # sending email after 3 full cycle failures of all 6 retrieval commands (usually due to Open API disabled)
+                Domoticz.Log("Sending email alert....")
+                sendemail=requests.get("http://127.0.0.1:8080/json.htm?type=command&param=sendnotification&subject='ATTENTION: Venus communication timeout, check connection and Open API setting'&body='Please check'")
                 self.emailAlertSent=True
+            return False
+
         except:
-            Domoticz.Error("No proper Venus data received. Check results.")
+            Domoticz.Error("Errors in getting Marstek Venus data. Check results.")
+            self.failedCycleCount+=1
             if self.notificationsOn and self.emailAlertSent==False:
-                #sendemail=requests.get("http://127.0.0.1:8080/json.htm?type=command&param=sendnotification&subject='ATTENTION: Venus communication data error'&body='Please check the log and solve the error.'")
+                Domoticz.Log("Sending email alert....")
+                sendemail=requests.get("http://127.0.0.1:8080/json.htm?type=command&param=sendnotification&subject='ATTENTION: Venus communication data error'&body='Please check the log and solve the error.'")
                 self.emailAlertSent=True
+            return False
 
 
 global _plugin
