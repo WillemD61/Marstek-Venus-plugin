@@ -43,6 +43,14 @@ So the venus_api_v2 library now covers the full specification of Marstek Open AP
 
 # This plugin was not tested in a multi-system environment. Only one Marstek Venus A was available for testing.
 
+Note on Marstek Venus E the default Open API port seems to be 28416 instead of 30000. This can be configured in the startup page of the Domoticz plugin.</br>
+
+To find out whch port on your system is used, you can use the following command on a Linux system:</br>
+sudo nmap -sUV IPaddress -p 28000-30000</br>
+of courses replacing IPaddress with your real IP address of the Marstek battery.</br>
+It will scan the defined range and report back which port is open.</br>
+
+
 # Observations on the Marstek Open Api specification:
 1) The specification includes reference to ID and SRC, maybe for multi-system environments, but that is not clear.
 2) par 3.2.1 : the wifi response also includes a wifi_mac field
