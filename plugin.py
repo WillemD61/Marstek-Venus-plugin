@@ -18,6 +18,9 @@
 #   * one P1 meter device added to hold all three values total_power, input_energy and output_energy (3 separate devices left alive, can be disable if desired)
 #   * extended timeout handling, after 3 full cycle failures of all 6 data retrieval commands, an email will be sent.
 #   * note: please also reinstall the venus_api_v2.py file for inclusion of the UPS mode
+# version 1.0.5
+#   * corrected the validation (sign) of power settings when setting manual mode
+#   * corrected the P1 processing when devices enables/disabled
 #
 # This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge)
 # The library was extended to cover all elements from the specification and was made more responsive and reliable.
@@ -324,8 +327,8 @@ class MarstekPlugin:
                                         bitvalue=bitvalue*2
                                 if weekdayValid:
                                     mmpower=int(mmpower)
-                                    # positive is charge, negative is discharge
-                                    if mmpower<=1200 and mmpower>=-1*self.maxOutputPower:
+                                    # positive is discharge, negative is charge
+                                    if mmpower<=self.maxOutputPower and mmpower>=-1200:
                                         # all validation done
                                         enable=1 # assuming period should be active
                                         success=client.set_manual_mode(mmpower,int(timeperiod),starttimestring,endtimestring,weekdayvalue,enable)
@@ -359,7 +362,7 @@ class MarstekPlugin:
                     #countdown=int(countdown)
                     pmpower=0
                     countdown=0 # note both power and countdown are required but don't seem to have an effect
-                    if pmpower<=1200 and pmpower>=-1*self.maxOutputPower:
+                    if pmpower<=self.maxOutputPower and pmpower>=-1200:
                         # all validation done
                         # note power and countdown are required but do not seem to have an effect
                         success=client.set_passive_mode(pmpower,countdown)
@@ -510,19 +513,20 @@ class MarstekPlugin:
                             Devices[modeswitchDeviceID].Units[modeSelectorUnit].sValue=str(Level)
                             Devices[modeswitchDeviceID].Units[modeSelectorUnit].Update()
 
-                        # combine 3 EMS values onto one P1 device
-                        if source=="EMS":
-                            if DevName=="total_power":
-                                self.saveTotalPower=int(response[Dev])
-                            if DevName=="input_energy":
-                                self.saveInputEnergy=int(int(response[Dev])/10)
-                            if DevName=="output_energy":
-                                self.saveOutputEnergy=int(int(response[Dev])/10)
-                                # this is last value of 3, so now it can be processed
+                    # combine 3 EMS values onto one P1 device
+                    if source=="EMS":
+                        if DevName=="total_power":
+                            self.saveTotalPower=int(response[Dev])
+                        if DevName=="input_energy":
+                            self.saveInputEnergy=int(int(response[Dev])/10)
+                        if DevName=="output_energy":
+                            self.saveOutputEnergy=int(int(response[Dev])/10)
+                            # this is last value of 3, so now it can be processed
+                            Unit=51 # fixed nr !!!
+                            DeviceID="{:04x}{:04x}".format(self.Hwid,Unit)
+                            Devices[DeviceID].Units[Unit].Refresh()
+                            if (Devices[DeviceID].Units[Unit].Used==1) : # only process if P1 is an active device
                                 if debug: Domoticz.Log("Updating P1 meter "+str(self.saveTotalPower)+" "+str(self.saveInputEnergy)+" "+str(self.saveOutputEnergy))
-                                Unit=51 # fixed nr !!!
-                                DeviceID="{:04x}{:04x}".format(self.Hwid,Unit)
-                                Devices[DeviceID].Units[Unit].Refresh()
                                 if self.saveTotalPower>=0:
                                     svalueString=str(self.saveInputEnergy)+";0;"+str(self.saveOutputEnergy)+";0;"+str(self.saveTotalPower)+";0"
                                 else:
