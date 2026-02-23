@@ -108,6 +108,7 @@ In Open API (so needs to be solved by Marstek)</br>
 1) If UPS was set and the APP is used to switch to manual mode, the Open API continues to report UPS mode.
 2) The power and countdown settings for passive mode, as per Open API specification, do not have an effect.
 3) A power setting for UPS mode is required in the request, but does not have an effect, and therefore cannot be configured.
+4) pv1_power is reported a factor 10 too high, pv2_power is reported corrrectly (3 and 4 not tested)
 
 In the plugin:
 1) Between initial startup and first data update the log shows "Error: Invalid Number sValue: '%' for device idx: '%'". This is probably due to creation of P1 device without initial value. The error message does not return after first data update.
