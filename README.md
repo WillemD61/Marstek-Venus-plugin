@@ -101,6 +101,7 @@ Release notes are included in the plugin.py file, not repeated here. Please also
 # Extra features
 
 1) Activation of UPS mode is possible, although not in the Open API specification
+2) Setting the power to -1 in manual mode means "self consumption" mode at the defined interval.
 
 # Bugs
 
