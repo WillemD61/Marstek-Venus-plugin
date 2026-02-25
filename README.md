@@ -83,10 +83,12 @@ Step 3 to 5 above can be replaced with "git clone https://github.com/WillemD61/M
 A DzVents script is available here to set initial values on the devices for manual mode and passive mode. Copy that file and run it once at a time suitable to you.
 After that you can switch Marstek operating mode by pressing the selector switch on the Domoticz switch tab. Switching might take a short time because it will wait until the ongoing data collection has finished.</br></br>
 
+Note setting power to -1 for the manual mode and then sending it to the battery by pressing the switch will activate manual mode in self-consumption setting for the defined period. If you want full time self consumption you just select that on the switch.
+
 Further DzVents or python programs can be developed to customize your battery usage, for example setting the system to passive mode when the car is charging, 
 assuming you have sensors for that in your system.</br></br>
 
-Note the UDP communication is not very reliable. A change of operating mode might not always be done. In that case the switch will not change to the selected mode either and you
+Note the UDP communication is not very reliable. A change of operating mode might not always be done, despite retries. In that case the switch will not change to the selected mode either and you
 have to try again. Also data collection sometimes runs into timeouts. It will retry automatically to collect data.
 
 Two test programs are available to check all API commands in your environment. For the test program the config.json file has to be adapdted with the correct IP number and MAC address.
@@ -98,7 +100,7 @@ Any feedback appreciated.
 
 Release notes are included in the plugin.py file, not repeated here. Please also install the venus_api_v2.py file when installing a new plugin version.
 
-# Extra features
+# Undocumented API features
 
 1) Activation of UPS mode is possible, although not mentioned in the Open API specification
 2) Setting the power to -1 in manual mode means "self consumption" mode at the defined interval.
