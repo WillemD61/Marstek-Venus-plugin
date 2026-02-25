@@ -21,6 +21,10 @@
 # version 1.0.5
 #   * corrected the validation (sign) of power settings when setting manual mode
 #   * corrected the P1 processing when devices enables/disabled
+# version 1.0.6
+#   * make the device name prefix customisable during startup (for multi system/plugin setups)
+#   * temporarily change the multiplier for pv1_power to solve a bug in Open Api where pv1_power is reported a factor 10 too high.
+#   * handle multiplier for kWh and P1 devices
 #
 # This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge)
 # The library was extended to cover all elements from the specification and was made more responsive and reliable.
@@ -111,6 +115,8 @@
                 <option label="No" value="No" default="true" />
             </options>
         </param>
+        <param field="Mode6" label="Device name prefix" width="150px">
+        </param>
     </params>
 </plugin>
 """
@@ -139,7 +145,7 @@ DEVSLIST={
     "bat_capacity"    : [5,  113,  0, 0, {}, 1   ,"Remaining Capacity","BAT"],
     "rated_capacity"  : [6,  113,  0, 0, {}, 1   ,"Rated Capacity","BAT"],
 # response PV.GetStatus
-    "pv1_power"       : [7,  243, 29, 0, {'EnergyMeterMode': '1'}, 1   ,"PV1 power","PV"], # 4 groups, although not in specification ver. 1.0
+    "pv1_power"       : [7,  243, 29, 0, {'EnergyMeterMode': '1'}, 0.1   ,"PV1 power","PV"], # 4 groups, although not in specification ver. 1.0
     "pv1_voltage"     : [8,  243,  8, 0, {}, 1   ,"PV1 voltage","PV"],
     "pv1_current"     : [9,  243, 23, 0, {}, 1   ,"PV1 current","PV"],
     "pv1_state"       : [10, 244, 73, 0, {}, 1   ,"PV1 state","PV"], # pv_state not in specification ver. 1.0
@@ -220,6 +226,7 @@ class MarstekPlugin:
         self.showDataLog=(Parameters["Mode3"]=="Yes")
         self.maxOutputPower=int(Parameters["Mode4"])
         debug=(Parameters["Mode5"]=="Yes")
+        self.namePrefix=str(Parameters["Mode6"])
         self.heartbeatCounter=0
         self.stillbusy=False
         self.Hwid=Parameters['HardwareID']
@@ -231,7 +238,7 @@ class MarstekPlugin:
             Subtype=DEVSLIST[Dev][2]
             Switchtype=DEVSLIST[Dev][3]
             Options=DEVSLIST[Dev][4]
-            Name="MV:"+DEVSLIST[Dev][6]
+            Name=self.namePrefix+DEVSLIST[Dev][6]
             if DeviceID not in Devices:
                 Domoticz.Status(f"Creating device for Field {Dev} ...")
                 if ((Type==243) and (Subtype==29)):
@@ -473,7 +480,8 @@ class MarstekPlugin:
                             Devices[DeviceID].Units[Unit].sValue=fieldText
                             Devices[DeviceID].Units[Unit].Update()
                         if ((type==243) and (subtype==29)): # kwh device, instant+counter
-                            fieldValue=response[Dev]
+                            multiplier=DEVSLIST[DevName][5]
+                            fieldValue=round(float(multiplier*response[Dev]),0)
                             if fieldValue>=-10000 and fieldValue<10000 : # only "reasonable" values will be processed, not 655xx
                                 Devices[DeviceID].Units[Unit].nValue=0
                                 Devices[DeviceID].Units[Unit].sValue=str(fieldValue)+";1" # supply actual watts , kwh are calculated by Domoticz.
@@ -489,7 +497,8 @@ class MarstekPlugin:
                             Devices[DeviceID].Units[Unit].sValue=fieldText
                             Devices[DeviceID].Units[Unit].Update()
                         if (type==248): # kW device
-                            fieldValue=response[Dev]
+                            multiplier=DEVSLIST[DevName][5]
+                            fieldValue=round(float(multiplier*response[Dev]),0)
                             Devices[DeviceID].Units[Unit].nValue=int(fieldValue)
                             fieldText=str(fieldValue)
                             Devices[DeviceID].Units[Unit].sValue=fieldText
@@ -661,3 +670,4 @@ def DumpConfigToLog():
             Domoticz.Debug("--->Unit sValue:   '" + Unit.sValue + "'")
             Domoticz.Debug("--->Unit LastLevel: " + str(Unit.LastLevel))
     return
+
