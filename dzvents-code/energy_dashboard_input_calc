@@ -1,0 +1,29 @@
+-- please adapt all IDX numbers for your Domoticz installation
+-- and adapt for the number of pv connections used on Marstek
+sumOfSolarIDX=370  -- output device holding the sum of all solar production for use in energy dashboard
+solarHouseIDX=3      -- devices holding solar production, inputs to the sum of the total
+solarMarstekPv1IDX=326
+solarMarstekPv2IDX=330
+-- add more if you have pv3 and/or pv4 connected
+MarstekOnGridIDX=349
+MarstekOffGidIDX=350
+nettBatteryIDX=371
+return {
+	on = {
+		devices = {
+			solarHouseIDX,
+            MarstekOnGridIDX,-- only one Marstek device needed since they are updated at the same time
+		}
+	},
+	logging = {
+		level = domoticz.LOG_DEBUG,
+		marker = 'energy dashboard input calc',
+	},
+	execute = function(domoticz, device)
+		--domoticz.log('Device ' .. device.name .. ' was changed', domoticz.LOG_INFO)
+		sumOfSolarValue=domoticz.devices(solarHouseIDX).usage+domoticz.devices(solarMarstekPv1IDX).usage+domoticz.devices(solarMarstekPv2IDX).usage
+		domoticz.devices(sumOfSolarIDX).updateElectricity(sumOfSolarValue)
+		nettBatteryValue=domoticz.devices(solarMarstekPv1IDX).usage+domoticz.devices(solarMarstekPv2IDX).usage-domoticz.devices(MarstekOnGridIDX).usage-domoticz.devices(MarstekOffGidIDX).usage
+		domoticz.devices(nettBatteryIDX).updateElectricity(nettBatteryValue)
+	end
+}
