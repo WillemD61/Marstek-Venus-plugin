@@ -118,4 +118,8 @@ In Open API (so needs to be solved by Marstek)</br>
 In the plugin:
 1) Between initial startup and first data update the log shows "Error: Invalid Number sValue: '%' for device idx: '%'". This is probably due to creation of P1 device without initial value. The error message does not return after first data update.
 
+# Note on Domoticz integration
+
+When integrating the Marstek devices into the Domoticz energy dashboard the energy flows are shown in the wrong diection. This is because Marstek considers negative values as charge values and positive as discharge. Domoticz is expecting those signs to be reversed. The easiest way to address this is by changing the multiplier in the device dictionary at the beginning of the code. This has NOT been implemented in the plugin yet, so standard Marstek conventions are followed.
+
 
