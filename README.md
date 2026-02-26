@@ -122,4 +122,8 @@ In the plugin:
 
 When integrating the Marstek devices into the Domoticz energy dashboard the energy flows are shown in the wrong diection. This is because Marstek considers negative values as charge values and positive as discharge. Domoticz is expecting those signs to be reversed. The easiest way to address this is by changing the multiplier in the device dictionary at the beginning of the code. This has NOT been implemented in the plugin yet, so standard Marstek conventions are followed.
 
+For a correct display of the Domoticz energy dashboard it is advised:
+1) To create one device that is updated with the sum of all PV power, either connected to the batery or not, and use that device in the energy dashboard.
+2) To change the sign on the battery power device used in the dashboard (and on other Marstek devices as well for consistency).
+
 
