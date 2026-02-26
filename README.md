@@ -29,27 +29,26 @@ So the venus_api_v2 library now covers the full specification of Marstek Open AP
     to be used has to be specified manually in the configuration parameters of this plugin.
 2) implement the Wifi.GetStatus (par 3.2.1) to configure or obtain Wifi info
 3) implement the BLE.GetStatus (par 3.3.1) to obtain Bluetooth info
-4) configuration of up to 10 periods for manual operating mode. For now it will handle one single period.
+4) configuration of up to 10 periods for manual operating mode in one go. It is possible to configure a manual period in Domoticz and then send it to the battery. Then you can configure a next and and send it. etc etc
 
 # It does implement the following:
 1) Get Battery, PV (photovoltaic) , ES (Energy System) and EM (Energy Meter) status info (par. 3.4, 3.5, 3.6.1 and 3.7.1)
 2) Get current Eenergy System operating mode (par 3.6.3)
 3) Change Energy System operating mode (auto, AI, manual, passive, UPS as shown in par 3.6.2) via a Domoticz selector switch.</br>
-   note the config of periods for manual mode needs to be further developed in future version of this plugin. For now it will
-   pick up one single period configuration from domoticz devices.
+   A number of Domoticz devices are created to hold the manual mode configuration. These can be updated, for example using DzVents, and when the selector switch is activated (by hand of by software) the configuration will be sent to the battery. This can be repeated to send multiple period configurations.
 5) Create all required Domoticz devices and load received data onto the devices.
 6) Send an alert email when an error is received (if configured) or 3x full cycle timeouts occur, from version 1.0.4 onwards
 7) Show data received in the domoticz log for debugging/monitoring (if configured)
 
-# This plugin was not tested in a multi-system environment. Only one Marstek Venus A was available for testing.
+# This plugin was tested using a single Marstek Venus A and a double Marstek Venus E v3.
 
-Note on Marstek Venus E the default Open API port seems to be 28416 instead of 30000. This can be configured in the startup page of the Domoticz plugin.</br>
+Note on some systems the default Open API port seems to be 28416 instead of 30000. This can be configured in the startup page of the Domoticz plugin.</br>
 
 To find out whch port on your system is used, you can use the following command on a Linux system:</br>
 sudo nmap -sUV IPaddress -p 28000-30000</br>
 of courses replacing IPaddress with your real IP address of the Marstek battery.</br>
 It will scan the defined range and report back which port is open.</br>
-
+Even then, on some (older?) systems the Open API port seems not to be working.
 
 # Observations on the Marstek Open Api specification:
 1) The specification includes reference to ID and SRC, maybe for multi-system environments, but that is not clear.
@@ -63,6 +62,8 @@ It will scan the defined range and report back which port is open.</br>
 
 Some duplicate values are present when looking at all data responses (soc 3x, ongrid and offgrid power 2x, EM data depending on mode 2x)
 For now these are included but might be removed later.
+
+If multiple plugins are installed for multi-system environments then some devices will be duplicated (like the devices holding the P1 values). These duplicate devices can be disabled in Domoticz. The plugin will skip the updates of disabled devices.
 
 # Installation instructions
 
@@ -82,16 +83,16 @@ Step 3 to 5 above can be replaced with "git clone https://github.com/WillemD61/M
 
 A DzVents script is available here to set initial values on the devices for manual mode and passive mode. Copy that file and run it once at a time suitable to you.
 After that you can switch Marstek operating mode by pressing the selector switch on the Domoticz switch tab. Switching might take a short time because it will wait until the ongoing data collection has finished.</br></br>
+This can also be triggered by software, if desired.</br>
 
-Note setting power to -1 for the manual mode and then sending it to the battery by pressing the switch will activate manual mode in self-consumption setting for the defined period. If you want full time self consumption you just select that on the switch.
+Note setting power to -1 for the manual mode and then sending it to the battery by pressing the switch will activate manual mode in self-consumption (Dutch: nul-op-de-meter) setting for the defined period. If you want full time self consumption you just select that on the switch.
 
-Further DzVents or python programs can be developed to customize your battery usage, for example setting the system to passive mode when the car is charging, 
-assuming you have sensors for that in your system.</br></br>
+Further DzVents or python programs can be developed to customize your battery usage, for example setting the system to passive mode when the car is charging, assuming you have sensors for that in your system.</br></br>
 
 Note the UDP communication is not very reliable. A change of operating mode might not always be done, despite retries. In that case the switch will not change to the selected mode either and you
 have to try again. Also data collection sometimes runs into timeouts. It will retry automatically to collect data.
 
-Two test programs are available to check all API commands in your environment. For the test program the config.json file has to be adapdted with the correct IP number and MAC address.
+Two test programs are available to check all API commands in your environment. For the test program the config.json file has to be adapted with the correct IP number and MAC address.
 I am curious to see what response is given in multi-system and multi-battery environments.
 
 Any feedback appreciated.
