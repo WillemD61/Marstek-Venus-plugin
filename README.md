@@ -120,10 +120,12 @@ In the plugin:
 
 # Note on Domoticz integration
 
-When integrating the Marstek devices into the Domoticz energy dashboard the energy flows are shown in the wrong diection. This is because Marstek considers negative values as charge values and positive as discharge. Domoticz is expecting those signs to be reversed. The easiest way to address this is by changing the multiplier in the device dictionary at the beginning of the code. This has NOT been implemented in the plugin yet, so standard Marstek conventions are followed.
+When integrating the standard Marstek devices into the Domoticz energy dashboard the energy flows are shown in the wrong diection. This is because Marstek considers negative values as charge values and positive as discharge. Domoticz energy dashboard is expecting those signs to be reversed. The easiest way to address this is by changing the multiplier in the device dictionary at the beginning of the code. This has NOT been implemented in the plugin yet, so standard Marstek conventions are followed.</br>
 
-For a correct display of the Domoticz energy dashboard it is advised:
-1) To create one device that is updated with the sum of all PV power, either connected to the batery or not, and use that device in the energy dashboard.
-2) To change the sign on the battery power device used in the dashboard (and on other Marstek devices as well for consistency).
+ You will get the most correct energy dashboard if:</br>
+1) you leave the plugin unchanged and use the sign as per Marstek conventions
+2) set up a device that holds the sum of all solar production, either connected to the Marstek or not
+3) set up a device that holds the nett power of the marstek battery/batteries (solar power minus ongrid and offgrid power)
+4) a dzvents script to perform the calculations, my own example is shown in the dzvents folder here on github
 
 
