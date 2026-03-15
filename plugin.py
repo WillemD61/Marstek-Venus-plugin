@@ -25,6 +25,8 @@
 #   * make the device name prefix customisable during startup (for multi system/plugin setups)
 #   * temporarily change the multiplier for pv1_power to solve a bug in Open Api where pv1_power is reported a factor 10 too high.
 #   * handle multiplier for kWh and P1 devices
+# version 1.0.7
+#   * adapted the validation limit for P1 meter
 #
 # This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge)
 # The library was extended to cover all elements from the specification and was made more responsive and reliable.
