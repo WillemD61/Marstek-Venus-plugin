@@ -254,6 +254,7 @@ class MarstekPlugin:
                     Domoticz.Unit(DeviceID=DeviceID,Unit=Unit, Name=Name, Type=Type, Subtype=Subtype, Switchtype=Switchtype, Options=Options, Used=1).Create()
         for Dev in DEVSLIST:
             Domoticz.Log("DEVSLIST "+str(DEVSLIST[Dev][0])+DEVSLIST[Dev][6])
+        client = VenusAPIClient(ip=self.IPAddress, port=self.Port, timeout=5)
 
 
     def onStop(self):
@@ -557,7 +558,7 @@ class MarstekPlugin:
         self.Hwid=Parameters['HardwareID']
         try:
             self.someResponseReceived=False
-            client = VenusAPIClient(ip=self.IPAddress, port=self.Port, timeout=5)
+            #client = VenusAPIClient(ip=self.IPAddress, port=self.Port, timeout=5)
             response=client.get_battery_status()
             if debug: Domoticz.Log("battery status data received: "+str(response))
             if response is not None:
