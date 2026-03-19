@@ -27,6 +27,9 @@
 #   * handle multiplier for kWh and P1 devices
 # version 1.0.7
 #   * adapted the validation limit for P1 meter
+# version 1.0.8.
+#   * moved the initiation of the api client to onStart
+#   * adapt the id sequencing in venus_v2_api.py, both measures might be needed for Venus E, to be tested
 #
 # This plugin re-uses the UDP API library developed by Ivan Kablar for his MQTT bridge (https://github.com/IvanKablar/marstek-venus-bridge)
 # The library was extended to cover all elements from the specification and was made more responsive and reliable.
