@@ -51,7 +51,7 @@ class VenusAPIClient:
             Response dictionary or None on error
         """
         if params is None:
-            params = {"id": 0}
+            params = {"id": self.request_id}
 
         last_error = None
 
