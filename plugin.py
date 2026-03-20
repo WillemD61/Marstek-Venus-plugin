@@ -213,7 +213,7 @@ class MarstekPlugin:
         return
 
     def onStart(self):
-        global debug
+        global debug, client
         Domoticz.Log("onStart called with parameters")
         for elem in Parameters:
             Domoticz.Log(str(elem)+" "+str(Parameters[elem]))
